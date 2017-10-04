@@ -1,7 +1,7 @@
 import requests
 import config
 import bs4
-import numpy as np
+import ics
 
 BASE_URL = "http://zhjw.scu.edu.cn"
 LOGIN_URL = BASE_URL + "/loginAction.do"
@@ -38,25 +38,29 @@ def login():
     return r.text
 
 
-class course:
-    def __init__(self):
-        pass
-
+def process(text):
+    text = text.replace(' ', '')
+    text = text.replace('\n', '')
+    text = text.replace('\r', '')
+    text = text.replace('\t', '')
+    text = text.strip()
+    return text
 
 def parser(scheduler_html):
     soup = bs4.BeautifulSoup(scheduler_html)
-    table = soup.select('table.titleTop2')[1]
-    scheduler_array = []
-    for row in table.findAll('tr'):
+    table = soup.select('table.displayTag')[1]
+    body = table.find_all('tbody')[0]
+    scheduler = ics.Calendar()
+    for row in body.findAll('tr'):
+        e = ics.Event()
+        c = []
         for tr in row.findAll('td'):
-            text = tr.text
-            text = text.replace(' ', '')
-            text = text.replace('\n', '')
-            print('*'+text+'*')
-            scheduler_array.append(tr.text)
-    scheduler = np.array(scheduler_array)
-    # scheduler = np.reshape(scheduler, (-1, 17))
-    # print(scheduler)
+            text = process(tr.text)
+            if text == '':
+                continue
+            c.append(text)
+        pass
+
 
 if __name__ == "__main__":
     parser(login())

@@ -11,6 +11,8 @@ headers = {
 }
 time_delay = 1
 data = {"zjh": config.zjh, "mm": config.mm}
+classStartTimeJA = ['08:15:00', '09:10:00', '10:15:00', '11:10:00', '13:50:00', '14:45:00', '15:40:00', '16:45:00', '17:40:00', '19:20:00', '20:15:00', '21:10:00'];
+classEndTimeJA = ['09:00:00', '09:55:00', '11:00:00', '11:55:00', '14:35:00', '15:30:00', '16:25:00', '17:30:00', '18:25:00', '20:05:00', '21:00:00', '21:55:00'];
 
 def login():
     jwc_session = requests.session()
@@ -51,16 +53,27 @@ def parser(scheduler_html):
     table = soup.select('table.displayTag')[1]
     body = table.find_all('tbody')[0]
     scheduler = ics.Calendar()
-    for row in body.findAll('tr'):
-        e = ics.Event()
+    courses = []
+    for index, row in enumerate(body.findAll('tr')):
         c = []
         for tr in row.findAll('td'):
+            rowspan = tr['rowspan']
             text = process(tr.text)
             if text == '':
                 continue
             c.append(text)
-        pass
+        generate_one_course()
+        if rowspan == 1:
+            pass
+        elif rowspan == 2:
+            pass
+        else:
+            pass
 
+def generate_one_course(c):
+    e = ics.Event()
+    week = c[10]
+    print(week)
 
 if __name__ == "__main__":
     parser(login())

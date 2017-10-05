@@ -2,6 +2,8 @@ import requests
 import config
 import bs4
 import ics
+import datetime
+import pytz
 
 BASE_URL = "http://zhjw.scu.edu.cn"
 LOGIN_URL = BASE_URL + "/loginAction.do"
@@ -52,28 +54,86 @@ def parser(scheduler_html):
     soup = bs4.BeautifulSoup(scheduler_html)
     table = soup.select('table.displayTag')[1]
     body = table.find_all('tbody')[0]
-    scheduler = ics.Calendar()
-    courses = []
-    for index, row in enumerate(body.findAll('tr')):
+    courses_list = body.findAll('tr')
+    scheduler = []
+    temp = []
+    for index in range(len(courses_list)):
         c = []
-        for tr in row.findAll('td'):
-            rowspan = tr['rowspan']
+        row = courses_list[index]
+        cells = row.findAll('td')
+        for tr in cells:
             text = process(tr.text)
-            if text == '':
-                continue
+            # if text == '':
+            #     continue
             c.append(text)
-        generate_one_course()
-        if rowspan == 1:
-            pass
-        elif rowspan == 2:
-            pass
-        else:
-            pass
+        temp.append(c)
+    for index, course in enumerate(temp):
+        c = []
+        # course = temp[index-1]
+        # print(course)
+        # print(len(course))
+        if len(course) != 17:
+            name = temp[index-1][2]
+            credit = temp[index-1][4]
+            weeks = course[0]
+            week = course[1]
+            sections = course[2]
+            location = course[3] + course[4] + course[5]
+            c.extend([name, credit, weeks, week, sections, location])
+            scheduler.append(c)
+            continue
+        name = course[2]
+        credit = course[4]
+        weeks = course[11]
+        week = course[12]
+        sections = course[13]
+        location = course[14] + course[15] + course[16]
+        c.extend([name, credit, weeks, week, sections, location])
+        # print(c)
+        scheduler.append(c)
+    for course in scheduler:
+        sections = course[4]
+        course[4] = [int(x) for x in sections.split('~')]
+        course[1] = float(course[1])
+        course[3] = int(course[3])
+    print(scheduler)
 
-def generate_one_course(c):
-    e = ics.Event()
-    week = c[10]
-    print(week)
+
+def add_events(path):
+    courses = config.courses
+    c = ics.Calendar()
+    start_date = datetime.datetime.strptime(config.start_time, '%Y-%m-%d')
+    tz = pytz.timezone('Asia/Taipei')
+    for course in courses:
+        course_name = course[0]
+        course_description = '学分：' + str(course[1])
+        course_weeks = course[2]
+        course_week = course[3]
+        course_section = course[4]
+        course_location = course[5]
+        for week in course_weeks:
+            e = ics.Event()
+            e.location = course_location
+            e.description = course_description
+            e.name = course_name
+            delta = datetime.timedelta(days=(week-1)*7+course_week)
+            temp = start_date + delta
+            s_time = temp.strftime('%Y:%m:%d') + ' ' + classStartTimeJA[course_section[0]-1]
+            e_time = temp.strftime('%Y:%m:%d') + ' ' + classEndTimeJA[course_section[-1]-1]
+            d1 = datetime.datetime.strptime(s_time, '%Y:%m:%d %H:%M:%S')
+            d2 = datetime.datetime.strptime(e_time, '%Y:%m:%d %H:%M:%S')
+            d1 = d1.replace(tzinfo=tz)
+            d2 = d2.replace(tzinfo=tz)
+            delta = datetime.timedelta(minutes=6)
+            d1 = d1 + delta
+            d2 = d2 + delta
+            e.begin = d1
+            e.end = d2
+            c.events.append(e)
+    with open(path, 'w') as f:
+        f.writelines(c)
 
 if __name__ == "__main__":
     parser(login())
+    # add_events('/Users/HZzone/Desktop/course.ics')
+

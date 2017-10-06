@@ -4,6 +4,7 @@ import bs4
 import ics
 import datetime
 import pytz
+import re
 
 BASE_URL = "http://zhjw.scu.edu.cn"
 LOGIN_URL = BASE_URL + "/loginAction.do"
@@ -96,6 +97,15 @@ def parser(scheduler_html):
         course[4] = [int(x) for x in sections.split('~')]
         course[1] = float(course[1])
         course[3] = int(course[3])
+        pattern = re.compile(r'.*-.*周')
+        match_group = re.match(pattern=pattern, string=course[2])
+        if match_group:
+            start_week = match_group.group(0)
+            end_week = match_group.group(1)
+            print(start_week)
+            print(end_week)
+        else:
+            pass
     print(scheduler)
 
 

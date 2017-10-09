@@ -5,6 +5,8 @@ import ics
 import datetime
 import pytz
 import re
+import sys
+import os
 
 BASE_URL = "http://zhjw.scu.edu.cn"
 LOGIN_URL = BASE_URL + "/loginAction.do"
@@ -97,16 +99,23 @@ def parser(scheduler_html):
         course[4] = [int(x) for x in sections.split('~')]
         course[1] = float(course[1])
         course[3] = int(course[3])
-        pattern = re.compile(r'.*-.*周')
-        match_group = re.match(pattern=pattern, string=course[2])
-        if match_group:
-            start_week = match_group.group(0)
-            end_week = match_group.group(1)
-            print(start_week)
-            print(end_week)
+        pattern = re.compile(r'(.+?)-(.+?)周')
+        match_result = re.findall(pattern, course[2])
+        if len(match_result) != 0:
+            start_week = int(match_result[0][0])
+            end_week = int(match_result[0][1])
+            # print(start_week)
+            # print(end_week)
+            x = list(range(start_week, end_week+1))
+            # course[2] = x.extend(x)
+            # course[2] = range(start_week, end_week)
+            course[2] = x
         else:
-            pass
+            # print(course[2])
+            unregular_str = course[2][:-2]
+            course[2] = [int(x) for x in unregular_str.split(',')]
     print(scheduler)
+    config.courses = scheduler
 
 
 def add_events(path):
@@ -145,5 +154,18 @@ def add_events(path):
 
 if __name__ == "__main__":
     parser(login())
-    # add_events('/Users/HZzone/Desktop/course.ics')
+    if len(sys.argv) == 1:
+        path = os.path.join(os.path.dirname('.'), 'courses.ics')
+        # path = 'courses.ics'
+    elif len(sys.argv) == 2:
+        path = sys.argv[1]
+    else:
+        print(u"参数不能多余2")
+        exit(1)
+    if os.path.isdir(path):
+        print("参数必须为路径")
+        exit(1)
+    print(path)
+    add_events(path)
+    print("生成成功")
 
